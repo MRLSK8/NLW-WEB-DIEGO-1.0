@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, ChangeEvent } from 'react';
 import './styles.css';
 import Logo from '../../assets/logo.svg';
 import { Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { Map, TileLayer, Marker } from 'react-leaflet';
 import api from '../../services/api';
+import axios from 'axios';
 
 interface item {
   id: number;
@@ -12,17 +13,64 @@ interface item {
   image_url: string;
 }
 
+interface state {
+  id: number;
+  nome: string;
+  sigla: string;
+}
+
+interface city {
+  id: number;
+  nome: string;
+}
+
 const CreatePoint: React.FC = () => {
   const [items, setItems] = useState<item[]>([]);
+  const [states, setStates] = useState<state[]>([]);
+  const [cities, setCities] = useState<city[]>([]);
+  const [selectedStates, setSelectedStates] = useState('default');
+  const [selectedCity, setSelectedCity] = useState('default');
 
   const fetchItems = async () => {
     const items = await api.get('items');
     setItems(items.data);
   };
 
+  const fetchUFs = async () => {
+    const states = await axios.get(
+      'https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome'
+    );
+    setStates(states.data);
+  };
+
+  const fetchCity = async () => {
+    const states = await axios.get(
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedStates}/municipios?orderBy=nome`
+    );
+    setCities(states.data);
+  };
+
+  const handleSelectedState = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedStates(event.target.value);
+  };
+
+  const handleSelectedCity = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCity(event.target.value);
+  };
+
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    fetchUFs();
+  }, []);
+
+  useEffect(() => {
+    if (selectedStates === 'default') return;
+    fetchCity();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStates]);
 
   return (
     <div id='page-create-point'>
@@ -80,15 +128,37 @@ const CreatePoint: React.FC = () => {
           <div className='field-group'>
             <div className='field'>
               <label htmlFor='uf'>Estado (UF)</label>
-              <select name='uf' id='uf'>
-                <option value='0'>Selecione um estado</option>
+              <select
+                onChange={handleSelectedState}
+                value={selectedStates}
+                name='uf'
+                id='uf'
+              >
+                <option value='default' disabled>
+                  Selecione um estado
+                </option>
+                {states.map((state) => (
+                  <option key={state.id} value={state.sigla}>
+                    {state.nome}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className='field'>
               <label htmlFor='city'>Cidade</label>
-              <select name='city' id='city'>
-                <option value='0'>Selecione uma cidade</option>
+              <select
+                onChange={handleSelectedCity}
+                value={selectedCity}
+                name='city'
+                id='city'
+              >
+                <option value='default'>Selecione uma cidade</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.nome}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
