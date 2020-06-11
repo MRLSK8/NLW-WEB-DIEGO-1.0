@@ -4,6 +4,7 @@ import Logo from '../../assets/logo.svg';
 import { Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { Map, TileLayer, Marker } from 'react-leaflet';
+import { LeafletMouseEvent } from 'leaflet';
 import api from '../../services/api';
 import axios from 'axios';
 
@@ -30,6 +31,14 @@ const CreatePoint: React.FC = () => {
   const [cities, setCities] = useState<city[]>([]);
   const [selectedStates, setSelectedStates] = useState('default');
   const [selectedCity, setSelectedCity] = useState('default');
+  const [initialPosition, setInitialPosition] = useState<[number, number]>([
+    0,
+    0,
+  ]);
+  const [selectedPosition, setSelectedPosition] = useState<[number, number]>([
+    0,
+    0,
+  ]);
 
   const fetchItems = async () => {
     const items = await api.get('items');
@@ -58,6 +67,10 @@ const CreatePoint: React.FC = () => {
     setSelectedCity(event.target.value);
   };
 
+  const handleMapClick = (event: LeafletMouseEvent) => {
+    setSelectedPosition([event.latlng.lat, event.latlng.lng]);
+  };
+
   useEffect(() => {
     fetchItems();
   }, []);
@@ -69,9 +82,15 @@ const CreatePoint: React.FC = () => {
   useEffect(() => {
     if (selectedStates === 'default') return;
     fetchCity();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStates]);
 
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const { latitude, longitude } = position.coords;
+      setInitialPosition([latitude, longitude]);
+    });
+  }, []);
   return (
     <div id='page-create-point'>
       <header>
@@ -117,12 +136,12 @@ const CreatePoint: React.FC = () => {
             <span>Selecione o endereço no mapa</span>
           </legend>
 
-          <Map center={[-8.4672146, -35.7312247]} zoom={20.17}>
+          <Map center={initialPosition} zoom={15} onClick={handleMapClick}>
             <TileLayer
               url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
               attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
             />
-            <Marker position={[-8.4672146, -35.7312247]} />
+            <Marker position={selectedPosition} />
           </Map>
 
           <div className='field-group'>
