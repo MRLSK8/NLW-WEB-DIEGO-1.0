@@ -7,6 +7,7 @@ import { Map, TileLayer, Marker } from 'react-leaflet';
 import { LeafletMouseEvent } from 'leaflet';
 import api from '../../services/api';
 import axios from 'axios';
+import Dropzone from '../../components/Dropzone';
 
 interface item {
   id: number;
@@ -45,6 +46,7 @@ const CreatePoint: React.FC = () => {
     0,
     0,
   ]);
+  const [selectedFile, setSelectedFile] = useState<File>();
 
   const history = useHistory();
 
@@ -96,22 +98,27 @@ const CreatePoint: React.FC = () => {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+
     const { name, email, whatsapp } = formData;
     const uf = selectedStates;
     const city = selectedCity;
     const items = selectedItems;
     const [latitude, longitude] = selectedPosition;
 
-    const data = {
-      name,
-      email,
-      whatsapp,
-      uf,
-      city,
-      items,
-      latitude,
-      longitude,
-    };
+    const data = new FormData();
+
+    data.append('name', name);
+    data.append('email', email);
+    data.append('whatsapp', whatsapp);
+    data.append('uf', uf);
+    data.append('city', city);
+    data.append('items', items.join(','));
+    data.append('latitude', String(latitude));
+    data.append('longitude', String(longitude));
+
+    if (selectedFile) {
+      data.append('image', selectedFile);
+    }
 
     await api.post('points', data);
 
@@ -155,6 +162,8 @@ const CreatePoint: React.FC = () => {
           Cadastro do <br />
           ponto de coleta
         </h1>
+
+        <Dropzone onFileUploaded={setSelectedFile} />
 
         <fieldset>
           <legend>
